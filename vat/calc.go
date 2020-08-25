@@ -1,6 +1,7 @@
 package vat
 
 import (
+	"log"
 	"time"
 
 	"github.com/r0busta/go-shopify-vat/shop"
@@ -43,6 +44,10 @@ func CalcNetEUSales(orders []*shop.Order, shopLocation shop.CountryCode, from, t
 
 	var total decimal.Decimal
 	for _, o := range orders {
+		if o.ShippingAddress == nil {
+			log.Printf("Warning! No shipping address order=%s", o.Name)
+			continue
+		}
 		if o.ShippingAddress.CountryCodeV2 == shopLocation || !IsInEuropeanUnion(o.ShippingAddress.CountryCodeV2) {
 			continue
 		}

@@ -6,33 +6,41 @@ import (
 	"os"
 	"time"
 
+	"github.com/alecthomas/kong"
 	"github.com/r0busta/go-shopify-vat/shop"
 	"github.com/r0busta/go-shopify-vat/vat"
 )
 
-const (
-	datesRangeTimeLayout = "2006-01-02"
-)
-
-func newClients() (shopClient *shop.Client) {
-	apiKey := os.Getenv("STORE_API_KEY")
-	password := os.Getenv("STORE_PASSWORD")
-	shopName := os.Getenv("STORE_NAME")
-	if apiKey == "" || password == "" || shopName == "" {
-		log.Panicln("Shopify app API Key and/or Password and/or Store Name not set")
-	}
-
-	shopClient = shop.NewClient(apiKey, password, shopName)
-
-	return
+var cli struct {
+	Report struct {
+		Period []string `arg required name:"date" help:"period start and end dates"`
+	} `cmd help:"Print report for VAT refund purposes."`
 }
 
+const (
+	periodFormatLayout = "2006-01-02"
+)
+
 func main() {
-	from, err := time.Parse(datesRangeTimeLayout, "2020-07-01")
+	ctx := kong.Parse(&cli)
+	switch ctx.Command() {
+	case "report <date>":
+		report(cli.Report.Period)
+	default:
+		panic(ctx.Command())
+	}
+}
+
+func report(period []string) {
+	if len(period) != 2 {
+		log.Fatalln("period is incorrect")
+	}
+
+	from, err := time.Parse(periodFormatLayout, period[0])
 	if err != nil {
 		log.Fatalln("error parsing time:", err)
 	}
-	to, err := time.Parse(datesRangeTimeLayout, "2020-07-31")
+	to, err := time.Parse(periodFormatLayout, period[1])
 	if err != nil {
 		log.Fatalln("error parsing time:", err)
 	}
@@ -45,11 +53,21 @@ func main() {
 	}
 
 	log.Printf("Found %d orders", len(orders))
-	// utils.WriteFormatedJSON(os.Stdout, orders)
 
 	totalTurnover := vat.CalcTotalTurnover(orders, &from, &to)
-	euSales := vat.CalcNetEUSales(orders, shop.CountryCode("GB"), &from, &to)
 
 	fmt.Println("Total turnover, including VAT (box 6):", totalTurnover.String())
-	fmt.Println("EU sales, excluding VAT (box 8):", euSales.String())
+}
+
+func newClients() (shopClient *shop.Client) {
+	apiKey := os.Getenv("STORE_API_KEY")
+	password := os.Getenv("STORE_PASSWORD")
+	shopName := os.Getenv("STORE_NAME")
+	if apiKey == "" || password == "" || shopName == "" {
+		log.Panicln("Shopify app API Key and/or Password and/or Store Name not set")
+	}
+
+	shopClient = shop.NewClient(apiKey, password, shopName)
+
+	return
 }
