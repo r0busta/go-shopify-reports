@@ -15,3 +15,7 @@
 # vendor/
 
 *.sh
+
+.env*
+
+go-shopify-vat
