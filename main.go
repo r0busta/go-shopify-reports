@@ -6,7 +6,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/joho/godotenv"
-	"github.com/r0busta/go-shopify-vat/cmd"
+	"github.com/r0busta/go-shopify-uk-vat/cmd"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 
 	ctx := kong.Parse(&cli,
 		kong.Name("vat"),
-		kong.Description("Get various sale numbers for VAT return from Shopify store"),
+		kong.Description("Get various reports from Shopify store for filling a VAT return with Her Majesty's Revenue and Customs (aka HMRC)."),
 		kong.UsageOnError())
 	err = ctx.Run(&cli.Globals)
 	ctx.FatalIfErrorf(err)

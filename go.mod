@@ -1,4 +1,4 @@
-module github.com/r0busta/go-shopify-vat
+module github.com/r0busta/go-shopify-uk-vat
 
 go 1.14
 

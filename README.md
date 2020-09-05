@@ -1,2 +1,3 @@
-# go-shopify-vat
-Calculate the VAT output that you charge on your Shopify sales for a given period
+# go-shopify-uk-vat
+
+Get various reports from Shopify store for filling a VAT return with Her Majesty's Revenue and Customs (aka HMRC).
