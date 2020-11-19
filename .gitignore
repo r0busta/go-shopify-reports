@@ -19,3 +19,4 @@
 .env*
 
 go-shopify-uk-vat
+.DS_Store
