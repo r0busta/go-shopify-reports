@@ -57,7 +57,7 @@ var _ OrderService = &OrderServiceOp{}
 func (s *OrderServiceOp) ListCreatedBetween(from, to *time.Time) ([]*Order, error) {
 	fromMin := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
 	toMax := time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 1e9-1, time.UTC)
-	log.Println(fromMin, toMax)
+	log.Printf("Getting orders in the range %s-%s", fromMin, toMax)
 
 	query := `
 	{
