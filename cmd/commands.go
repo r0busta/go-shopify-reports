@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/r0busta/go-shopify-reports/vat"
+	log "github.com/sirupsen/logrus"
 )
 
 type ReportCmd struct {

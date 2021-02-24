@@ -2,10 +2,11 @@ package vat
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/r0busta/go-shopify-reports/shop"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type VATReturn interface {
@@ -25,7 +26,7 @@ func (s *FlatRateReturn) Report(period []string) {
 		log.Fatalln("error parsing period dates:", err)
 	}
 
-	shopClient := shop.NewDefaultClients()
+	shopClient := shop.NewClient()
 
 	orders, err := shopClient.Order.ListCreatedBetween(from, to)
 	if err != nil {
@@ -34,7 +35,10 @@ func (s *FlatRateReturn) Report(period []string) {
 
 	log.Printf("Found %d orders", len(orders))
 
-	totalTurnover := CalcTotalTurnover(orders, from, to)
+	totalTurnover, err := CalcTotalTurnover(orders, from, to)
+	if err != nil {
+		log.Fatalf("Error calculating total turnover: %s", err)
+	}
 
 	fmt.Println("Total turnover, including VAT and EC sales (box 6):", totalTurnover.String())
 }

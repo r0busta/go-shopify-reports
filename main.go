@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/alecthomas/kong"
 	"github.com/joho/godotenv"
 	"github.com/r0busta/go-shopify-reports/cmd"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {

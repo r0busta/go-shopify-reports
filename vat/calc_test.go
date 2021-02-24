@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/r0busta/go-shopify-graphql-model/graph/model"
 	"github.com/r0busta/go-shopify-reports/shop"
 	"github.com/shopspring/decimal"
+	"gopkg.in/guregu/null.v4"
 )
 
 const (
@@ -22,6 +24,10 @@ func newTime(v time.Time) *time.Time {
 	return &v
 }
 
+func newCountryCode(v model.CountryCode) *model.CountryCode {
+	return &v
+}
+
 func TestCalcTotalTurnover(t *testing.T) {
 	from, err := time.Parse(datesRangeTimeLayout, "2020-04-01")
 	if err != nil {
@@ -33,7 +39,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 	}
 
 	type args struct {
-		orders []*shop.Order
+		orders []*model.Order
 		from   time.Time
 		to     time.Time
 	}
@@ -46,17 +52,17 @@ func TestCalcTotalTurnover(t *testing.T) {
 			args: args{
 				from: from,
 				to:   to,
-				orders: []*shop.Order{
+				orders: []*model.Order{
 					{
-						Transactions: []shop.Transaction{
+						Transactions: []*model.OrderTransaction{
 							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.01")),
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
 									},
 								},
 							},
@@ -70,54 +76,54 @@ func TestCalcTotalTurnover(t *testing.T) {
 			args: args{
 				from: from,
 				to:   to,
-				orders: []*shop.Order{
+				orders: []*model.Order{
 					{
-						Transactions: []shop.Transaction{
+						Transactions: []*model.OrderTransaction{
 							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.99")),
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.99"),
 									},
 								},
 							},
 							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
 								Kind:        "REFUND",
 								Status:      "SUCCESS",
 								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("5.01")),
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("5.01"),
 									},
 								},
 							},
 						},
 					},
 					{
-						Transactions: []shop.Transaction{
+						Transactions: []*model.OrderTransaction{
 							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.02")),
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.02"),
 									},
 								},
 							},
 							{
-								ProcessedAt: newTime(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC)),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.02")),
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.02"),
 									},
 								},
 							},
@@ -130,128 +136,12 @@ func TestCalcTotalTurnover(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := CalcTotalTurnover(tt.args.orders, &tt.args.from, &tt.args.to)
+			got, gotErr := CalcTotalTurnover(tt.args.orders, &tt.args.from, &tt.args.to)
+			if gotErr != nil {
+				t.Errorf("CalcTotalTurnover(), gotErr=%v, want %v", gotErr.Error(), nil)
+			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CalcTotalTurnover() = %v, want %v", got.String(), tt.want.String())
-			}
-		})
-	}
-}
-
-func TestCalcNetEUSales(t *testing.T) {
-	from, err := time.Parse(datesRangeTimeLayout, "2020-04-01")
-	if err != nil {
-		log.Fatalln("error parsing time:", err)
-	}
-	to, err := time.Parse(datesRangeTimeLayout, "2020-04-01")
-	if err != nil {
-		log.Fatalln("error parsing time:", err)
-	}
-
-	type args struct {
-		orders       []*shop.Order
-		shopLocation shop.CountryCode
-		from         time.Time
-		to           time.Time
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *decimal.Decimal
-		wantErr bool
-	}{
-		{
-			args: args{
-				from:         from,
-				to:           to,
-				shopLocation: shop.CountryCode("GB"),
-				orders: []*shop.Order{
-					{
-						Transactions: []shop.Transaction{
-							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
-								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.02")),
-									},
-								},
-							},
-						},
-						ShippingAddress: &shop.MailingAddress{
-							CountryCodeV2: shop.CountryCode("GB"),
-						},
-					},
-					{
-						Transactions: []shop.Transaction{
-							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
-								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.02")),
-									},
-								},
-							},
-							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 12, 30, 0, 0, time.UTC)),
-								Kind:        "REFUND",
-								Status:      "SUCCESS",
-								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("5.01")),
-									},
-								},
-							},
-						},
-						ShippingAddress: &shop.MailingAddress{
-							CountryCodeV2: shop.CountryCode("DE"),
-						},
-					},
-					{
-						Transactions: []shop.Transaction{
-							{
-								ProcessedAt: newTime(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC)),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
-								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("20.02")),
-									},
-								},
-							},
-							{
-								ProcessedAt: newTime(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC)),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
-								Test:        false,
-								AmountSet: &shop.MoneyBag{
-									ShopMoney: &shop.MoneyV2{
-										Amount: newDecimal(decimal.RequireFromString("10.02")),
-									},
-								},
-							},
-						},
-						ShippingAddress: &shop.MailingAddress{
-							CountryCodeV2: shop.CountryCode("SE"),
-						},
-					},
-				},
-			},
-			want: newDecimal(decimal.RequireFromString("12.53")),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := CalcNetEUSales(tt.args.orders, tt.args.shopLocation, &tt.args.from, &tt.args.to)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CalcNetEUSales() = %v, want %v", got.String(), tt.want.String())
 			}
 		})
 	}

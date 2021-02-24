@@ -1,62 +1,51 @@
 package vat
 
 import (
-	"log"
+	"fmt"
 	"time"
 
+	"github.com/r0busta/go-shopify-graphql-model/graph/model"
 	"github.com/r0busta/go-shopify-reports/shop"
 	"github.com/shopspring/decimal"
 )
 
 const vatRate = 0.2
 
-func SumTransactions(transactions []shop.Transaction, fromMin, toMax *time.Time) *decimal.Decimal {
+func SumTransactions(transactions []*model.OrderTransaction, fromMin, toMax *time.Time) (*decimal.Decimal, error) {
 	var total decimal.Decimal
 	for _, t := range transactions {
 		if t.Test {
 			continue
 		}
 
-		if t.ProcessedAt.After(*fromMin) && t.ProcessedAt.Before(*toMax) || t.ProcessedAt.Equal(*fromMin) || t.ProcessedAt.Equal(*toMax) {
-			amount := shop.GetTransactionAmount(&t)
+		processedAt, err := time.Parse(shop.ISO8601Layout, t.ProcessedAt.String)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing processed at time: %s", err)
+		}
+		if processedAt.After(*fromMin) && processedAt.Before(*toMax) || processedAt.Equal(*fromMin) || processedAt.Equal(*toMax) {
+			amount, err := shop.GetTransactionAmount(t)
+			if err != nil {
+				return nil, fmt.Errorf("error getting transaction amount: %s", err)
+			}
 			total = total.Add(*amount)
 		}
 	}
-	return &total
+	return &total, nil
 }
 
-func CalcTotalTurnover(orders []*shop.Order, from, to *time.Time) *decimal.Decimal {
+func CalcTotalTurnover(orders []*model.Order, from, to *time.Time) (*decimal.Decimal, error) {
 	fromMin := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
 	toMax := time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 1e9-1, time.UTC)
 
 	var total decimal.Decimal
 
 	for _, o := range orders {
-		total = total.Add(*SumTransactions(o.Transactions, &fromMin, &toMax))
+		sum, err := SumTransactions(o.Transactions, &fromMin, &toMax)
+		if err != nil {
+			return nil, fmt.Errorf("error getting transactions total: %s", err)
+		}
+		total = total.Add(*sum)
 	}
 
-	return &total
-}
-
-func CalcNetEUSales(orders []*shop.Order, shopLocation shop.CountryCode, from, to *time.Time) *decimal.Decimal {
-	fromMin := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
-	toMax := time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 1e9-1, time.UTC)
-
-	var total decimal.Decimal
-	for _, o := range orders {
-		if o.ShippingAddress == nil {
-			log.Printf("Warning! No shipping address order=%s", o.Name)
-			continue
-		}
-		if o.ShippingAddress.CountryCodeV2 == shopLocation || !IsInEuropeanUnion(o.ShippingAddress.CountryCodeV2) {
-			continue
-		}
-
-		amount := SumTransactions(o.Transactions, &fromMin, &toMax)
-		tax := amount.Mul(decimal.NewFromFloat(vatRate / (1 + vatRate))).Round(2)
-		net := amount.Sub(tax)
-		total = total.Add(net)
-	}
-
-	return &total
+	return &total, nil
 }

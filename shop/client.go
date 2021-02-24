@@ -1,47 +1,24 @@
 package shop
 
 import (
-	"log"
-	"os"
-
-	shopifygraphql "github.com/r0busta/go-shopify-graphql"
-	"github.com/shurcooL/graphql"
+	shopifygraphql "github.com/r0busta/go-shopify-graphql/v3"
 )
 
 const (
 	shopifyAPIVersion = "2020-10"
+
+	ISO8601Layout = "2006-01-02T15:04:05Z"
 )
 
 type Client struct {
-	gql *graphql.Client
+	shopifyClient *shopifygraphql.Client
 
 	Order OrderService
 }
 
-func NewDefaultClients() (shopClient *Client) {
-	apiKey := os.Getenv("STORE_API_KEY")
-	password := os.Getenv("STORE_PASSWORD")
-	shopName := os.Getenv("STORE_NAME")
-	if apiKey == "" || password == "" || shopName == "" {
-		log.Panicln("Shopify app API Key and/or Password and/or Store Name not set")
-	}
-
-	shopClient = NewClient(apiKey, password, shopName)
-
-	return
-}
-
-func NewClient(apiKey string, password string, shopName string) *Client {
-	c := &Client{gql: newShopifyGraphQLClient(apiKey, password, shopName)}
+func NewClient() *Client {
+	c := &Client{shopifyClient: shopifygraphql.NewDefaultClient()}
 	c.Order = &OrderServiceOp{client: c}
 
 	return c
-}
-
-func newShopifyGraphQLClient(apiKey string, password string, shopName string) *graphql.Client {
-	opts := []shopifygraphql.Option{
-		shopifygraphql.WithVersion(shopifyAPIVersion),
-		shopifygraphql.WithPrivateAppAuth(apiKey, password),
-	}
-	return shopifygraphql.NewClient(shopName, opts...)
 }
