@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/r0busta/go-shopify-uk-vat/shop"
+	"github.com/r0busta/go-shopify-reports/shop"
 )
 
 type VATReturn interface {

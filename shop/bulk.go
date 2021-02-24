@@ -12,8 +12,8 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/r0busta/go-shopify-uk-vat/fileutils"
-	"github.com/r0busta/go-shopify-uk-vat/rand"
+	"github.com/r0busta/go-shopify-reports/fileutils"
+	"github.com/r0busta/go-shopify-reports/rand"
 	"github.com/shurcooL/graphql"
 )
 

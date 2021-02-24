@@ -6,7 +6,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/joho/godotenv"
-	"github.com/r0busta/go-shopify-uk-vat/cmd"
+	"github.com/r0busta/go-shopify-reports/cmd"
 )
 
 func main() {

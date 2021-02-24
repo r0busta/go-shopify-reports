@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/r0busta/go-shopify-uk-vat/shop"
+	"github.com/r0busta/go-shopify-reports/shop"
 	"github.com/shopspring/decimal"
 )
 

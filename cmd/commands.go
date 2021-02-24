@@ -3,7 +3,7 @@ package cmd
 import (
 	"log"
 
-	"github.com/r0busta/go-shopify-uk-vat/vat"
+	"github.com/r0busta/go-shopify-reports/vat"
 )
 
 type ReportCmd struct {
