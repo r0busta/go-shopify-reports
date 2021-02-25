@@ -2,9 +2,9 @@ package vat
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/r0busta/go-shopify-reports/shop"
+	"github.com/r0busta/go-shopify-reports/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -16,47 +16,23 @@ type VATReturn interface {
 type FlatRateReturn struct {
 }
 
-const (
-	periodFormatLayout = "2006-01-02"
-)
-
-func (s *FlatRateReturn) Report(period []string) {
-	from, to, err := parsePeriod(period)
+func (s *FlatRateReturn) Report(period []string, useCached bool) {
+	from, to, err := utils.ParsePeriod(period)
 	if err != nil {
 		log.Fatalln("error parsing period dates:", err)
 	}
 
 	shopClient := shop.NewClient()
-
-	orders, err := shopClient.Order.ListCreatedBetween(from, to)
+	orders, err := shopClient.Order.ListCreatedBetween(*from, *to, useCached)
 	if err != nil {
-		log.Fatalln("error listing orders:", err)
+		log.Fatalf("error getting orders: %s", err)
 	}
-
 	log.Printf("Found %d orders", len(orders))
 
-	totalTurnover, err := CalcTotalTurnover(orders, from, to)
+	totalTurnover, err := shop.CalcTotalTurnover(orders, *from, *to)
 	if err != nil {
 		log.Fatalf("Error calculating total turnover: %s", err)
 	}
 
 	fmt.Println("Total turnover, including VAT and EC sales (box 6):", totalTurnover.String())
-}
-
-func parsePeriod(period []string) (*time.Time, *time.Time, error) {
-	if len(period) != 2 {
-		return nil, nil, fmt.Errorf("expected `from` and `to` period dates")
-	}
-
-	from, err := time.Parse(periodFormatLayout, period[0])
-	if err != nil {
-		return nil, nil, fmt.Errorf("error parsing `from` date: %s", err)
-	}
-
-	to, err := time.Parse(periodFormatLayout, period[1])
-	if err != nil {
-		return nil, nil, fmt.Errorf("error parsing `to` date: %s", err)
-	}
-
-	return &from, &to, nil
 }

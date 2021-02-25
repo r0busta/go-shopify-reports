@@ -6,18 +6,13 @@ import (
 	"time"
 
 	"github.com/r0busta/go-shopify-graphql-model/graph/model"
+	"github.com/r0busta/go-shopify-reports/cache"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	queryTimeLayout = "2006-01-02T15:04:05Z"
-	fromMinTime     = "00:00:00Z"
-	toMaxTime       = "23:59:59Z"
-)
-
 type OrderService interface {
-	ListCreatedBetween(from, to *time.Time) ([]*model.Order, error)
+	ListCreatedBetween(from, to time.Time, useCached bool) ([]*model.Order, error)
 }
 
 type OrderServiceOp struct {
@@ -26,16 +21,39 @@ type OrderServiceOp struct {
 
 var _ OrderService = &OrderServiceOp{}
 
-func (s *OrderServiceOp) ListCreatedBetween(from, to *time.Time) ([]*model.Order, error) {
-	fromMin := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
-	toMax := time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 1e9-1, time.UTC)
-	log.Printf("Getting orders in the range %s-%s", fromMin, toMax)
+func (s *OrderServiceOp) ListCreatedBetween(from, to time.Time, useCached bool) ([]*model.Order, error) {
+	isCacheValid := false
+	if useCached {
+		isCacheValid = cache.CheckCache()
+	}
+
+	if useCached && isCacheValid {
+		orders, err := cache.ReadCache()
+		if err != nil {
+			return []*model.Order{}, fmt.Errorf("error reading orders from cache: %s", err)
+		}
+		return orders, err
+	}
+
+	orders, err := s.listCreatedBetween(from, to)
+	if err != nil {
+		return []*model.Order{}, fmt.Errorf("error listing orders: %s", err)
+	}
+	err = cache.WriteCache(orders)
+	if err != nil {
+		return []*model.Order{}, fmt.Errorf("error caching orders: %s", err)
+	}
+	return orders, err
+}
+func (s *OrderServiceOp) listCreatedBetween(from, to time.Time) ([]*model.Order, error) {
+	log.Printf("Getting orders in the range %s and %s", from.Format("Jan 2, 2006"), to.Format("Jan 2, 2006"))
 
 	query := `
 	{
 		orders(query: "$query") {
 			edges {
 				node {
+					id
 					name
 					transactions {
 						processedAt
@@ -52,6 +70,20 @@ func (s *OrderServiceOp) ListCreatedBetween(from, to *time.Time) ([]*model.Order
 					shippingAddress{
 						countryCodeV2
 					}
+					lineItems{
+						edges{
+							node{
+								id
+								product{
+									id
+									tags
+								}
+								vendor
+								quantity
+								unfulfilledQuantity
+							}
+						}
+					}
 				}
 			}
 		}
@@ -60,7 +92,7 @@ func (s *OrderServiceOp) ListCreatedBetween(from, to *time.Time) ([]*model.Order
 	query = strings.ReplaceAll(query, "$query", fmt.Sprintf(`
 		(created_at:>='%[1]s' created_at:<='%[2]s')
 		OR (updated_at:>='%[1]s' updated_at:<='%[2]s')
-		OR (processed_at:>='%[1]s' processed_at:<='%[2]s')`, fromMin.Format(queryTimeLayout), toMax.Format(queryTimeLayout)))
+		OR (processed_at:>='%[1]s' processed_at:<='%[2]s')`, from.Format(ISO8601Layout), to.Format(ISO8601Layout)))
 	var orders []*model.Order
 
 	err := s.client.shopifyClient.BulkOperation.BulkQuery(query, &orders)
@@ -92,4 +124,46 @@ func GetTransactionAmount(t *model.OrderTransaction) (*decimal.Decimal, error) {
 	default:
 		return &decimal.Zero, nil
 	}
+}
+
+func SumTransactions(transactions []*model.OrderTransaction, kind model.OrderTransactionKind, from, to time.Time) (*decimal.Decimal, error) {
+	var total decimal.Decimal
+	for _, t := range transactions {
+		if t.Test {
+			continue
+		}
+
+		processedAt, err := time.Parse(ISO8601Layout, t.ProcessedAt.String)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing processed at time: %s", err)
+		}
+		if t.Kind == kind && (processedAt.After(from) && processedAt.Before(to) || processedAt.Equal(from) || processedAt.Equal(to)) {
+			amount, err := GetTransactionAmount(t)
+			if err != nil {
+				return nil, fmt.Errorf("error getting transaction amount: %s", err)
+			}
+			total = total.Add(*amount)
+		}
+	}
+	return &total, nil
+}
+
+func CalcTotalTurnover(orders []*model.Order, from, to time.Time) (*decimal.Decimal, error) {
+	var total decimal.Decimal
+
+	for _, o := range orders {
+		revenue, err := SumTransactions(o.Transactions, model.OrderTransactionKindSale, from, to)
+		if err != nil {
+			return nil, fmt.Errorf("error getting transactions total: %s", err)
+		}
+		total = total.Add(*revenue)
+
+		refunds, err := SumTransactions(o.Transactions, model.OrderTransactionKindRefund, from, to)
+		if err != nil {
+			return nil, fmt.Errorf("error getting transactions total: %s", err)
+		}
+		total = total.Add(*refunds)
+	}
+
+	return &total, nil
 }

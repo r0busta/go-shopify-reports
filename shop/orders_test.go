@@ -1,4 +1,4 @@
-package vat
+package shop
 
 import (
 	"log"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/r0busta/go-shopify-graphql-model/graph/model"
-	"github.com/r0busta/go-shopify-reports/shop"
+	"github.com/r0busta/go-shopify-reports/utils"
 	"github.com/shopspring/decimal"
 	"gopkg.in/guregu/null.v4"
 )
@@ -29,13 +29,9 @@ func newCountryCode(v model.CountryCode) *model.CountryCode {
 }
 
 func TestCalcTotalTurnover(t *testing.T) {
-	from, err := time.Parse(datesRangeTimeLayout, "2020-04-01")
+	from, to, err := utils.ParsePeriod([]string{"2020-04-01", "2020-04-01"})
 	if err != nil {
-		log.Fatalln("error parsing time:", err)
-	}
-	to, err := time.Parse(datesRangeTimeLayout, "2020-04-01")
-	if err != nil {
-		log.Fatalln("error parsing time:", err)
+		log.Fatalf("error parsing period: %s", err)
 	}
 
 	type args struct {
@@ -50,13 +46,13 @@ func TestCalcTotalTurnover(t *testing.T) {
 	}{
 		{
 			args: args{
-				from: from,
-				to:   to,
+				from: *from,
+				to:   *to,
 				orders: []*model.Order{
 					{
 						Transactions: []*model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
@@ -74,13 +70,13 @@ func TestCalcTotalTurnover(t *testing.T) {
 		},
 		{
 			args: args{
-				from: from,
-				to:   to,
+				from: *from,
+				to:   *to,
 				orders: []*model.Order{
 					{
 						Transactions: []*model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
@@ -91,7 +87,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
 								Kind:        "REFUND",
 								Status:      "SUCCESS",
 								Test:        false,
@@ -106,7 +102,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 					{
 						Transactions: []*model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
@@ -117,7 +113,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC).Format(shop.ISO8601Layout))),
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
 								Kind:        "SALE",
 								Status:      "SUCCESS",
 								Test:        false,
@@ -136,7 +132,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := CalcTotalTurnover(tt.args.orders, &tt.args.from, &tt.args.to)
+			got, gotErr := CalcTotalTurnover(tt.args.orders, tt.args.from, tt.args.to)
 			if gotErr != nil {
 				t.Errorf("CalcTotalTurnover(), gotErr=%v, want %v", gotErr.Error(), nil)
 			}

@@ -20,3 +20,5 @@
 
 go-shopify-uk-vat
 .DS_Store
+.cache.json
+out.csv

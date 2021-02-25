@@ -9,5 +9,7 @@ require (
 	github.com/r0busta/go-shopify-graphql/v3 v3.0.2
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.8.0
+	github.com/thoas/go-funk v0.7.0
+	github.com/tomlazar/table v0.1.0
 	gopkg.in/guregu/null.v4 v4.0.0
 )

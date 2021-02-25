@@ -24,7 +24,7 @@ func main() {
 
 	ctx := kong.Parse(&cli,
 		kong.Name("vat"),
-		kong.Description("Get various reports from Shopify store for filling a VAT return with Her Majesty's Revenue and Customs (aka HMRC)."),
+		kong.Description("Get various reports from Shopify store."),
 		kong.UsageOnError())
 	err = ctx.Run(&cli.Globals)
 	ctx.FatalIfErrorf(err)
