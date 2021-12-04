@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/r0busta/go-shopify-reports/corporatetax"
 	"github.com/r0busta/go-shopify-reports/sales"
 	"github.com/r0busta/go-shopify-reports/vat"
 	log "github.com/sirupsen/logrus"
@@ -8,6 +9,11 @@ import (
 
 type VATReportCmd struct {
 	Scheme string   `arg help:"Scheme (e.g. flat)" enum:"flat"`
+	Period []string `arg required name:"date" help:"Period start and end dates (e.g. 2020-08-01 2020-10-31)"`
+	Cached bool     `name:"cached" help:"Use cached results"`
+}
+
+type CorporateTaxReportCmd struct {
 	Period []string `arg required name:"date" help:"Period start and end dates (e.g. 2020-08-01 2020-10-31)"`
 	Cached bool     `name:"cached" help:"Use cached results"`
 }
@@ -33,6 +39,11 @@ func (cmd *VATReportCmd) Run(ctx *Globals) error {
 	default:
 		log.Fatalln("Unimplemented scheme")
 	}
+	return nil
+}
+
+func (cmd *CorporateTaxReportCmd) Run(ctx *Globals) error {
+	corporatetax.Report(cmd.Period, cmd.Cached)
 	return nil
 }
 

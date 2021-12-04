@@ -45,6 +45,7 @@ func (s *OrderServiceOp) ListCreatedBetween(from, to time.Time, useCached bool) 
 	}
 	return orders, err
 }
+
 func (s *OrderServiceOp) listCreatedBetween(from, to time.Time) ([]*model.Order, error) {
 	log.Printf("Getting orders in the range %s and %s", from.Format("Jan 2, 2006"), to.Format("Jan 2, 2006"))
 
@@ -55,6 +56,21 @@ func (s *OrderServiceOp) listCreatedBetween(from, to time.Time) ([]*model.Order,
 				node {
 					id
 					name
+					totalPriceSet {
+						shopMoney {
+							amount
+							currencyCode
+						}
+					}
+					totalRefundedSet {
+						shopMoney {
+							amount
+							currencyCode
+						}
+					}
+					taxLines {
+						rate
+					}
 					transactions {
 						processedAt
 						status
@@ -163,6 +179,55 @@ func CalcTotalTurnover(orders []*model.Order, from, to time.Time) (*decimal.Deci
 			return nil, fmt.Errorf("error getting transactions total: %s", err)
 		}
 		total = total.Add(*refunds)
+	}
+
+	return &total, nil
+}
+
+func GetOrderNetTotal(o *model.Order) (*decimal.Decimal, error) {
+	total := decimal.Zero
+
+	if o.TotalPriceSet != nil && o.TotalPriceSet.ShopMoney != nil && !o.TotalPriceSet.ShopMoney.Amount.IsZero() {
+		revenue, err := decimal.NewFromString(o.TotalPriceSet.ShopMoney.Amount.ValueOrZero())
+		if err != nil {
+			return nil, fmt.Errorf("error parsing total price set: %s", err)
+		}
+		total = total.Add(revenue)
+	}
+
+	if o.TotalRefundedSet != nil && o.TotalRefundedSet.ShopMoney != nil && !o.TotalRefundedSet.ShopMoney.Amount.IsZero() {
+		refunds, err := decimal.NewFromString(o.TotalRefundedSet.ShopMoney.Amount.ValueOrZero())
+		if err != nil {
+			return nil, fmt.Errorf("error parsing total refunded set: %s", err)
+		}
+		total = total.Sub(refunds)
+	}
+
+	for _, t := range o.TaxLines {
+		if t.Rate == nil {
+			continue
+		}
+
+		rate := decimal.NewFromFloat(*t.Rate)
+
+		tax := total.Sub(total.Div(rate.Add(decimal.NewFromFloat(1)))).RoundBank(2)
+
+		total = total.Sub(tax)
+	}
+
+	return &total, nil
+}
+
+func CalcTotalNetTurnover(orders []*model.Order, from, to time.Time) (*decimal.Decimal, error) {
+	var total decimal.Decimal
+
+	for _, o := range orders {
+		orderNetTotal, err := GetOrderNetTotal(o)
+		if err != nil {
+			return nil, fmt.Errorf("calculating order net total: %s", err)
+		}
+
+		total = total.Add(*orderNetTotal)
 	}
 
 	return &total, nil
