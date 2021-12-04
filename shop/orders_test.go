@@ -11,10 +11,6 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-const (
-	datesRangeTimeLayout = "2006-01-02"
-)
-
 func newDecimal(v decimal.Decimal) *decimal.Decimal {
 	return &v
 }
@@ -48,6 +44,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 		want *decimal.Decimal
 	}{
 		{
+			name: "Single order with a sale transaction",
 			args: args{
 				from: *from,
 				to:   *to,
@@ -56,8 +53,8 @@ func TestCalcTotalTurnover(t *testing.T) {
 						Transactions: []*model.OrderTransaction{
 							{
 								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
 								AmountSet: &model.MoneyBag{
 									ShopMoney: &model.MoneyV2{
@@ -72,6 +69,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 			want: newDecimal(decimal.RequireFromString("10.01")),
 		},
 		{
+			name: "Two orders. One with a refund and another one with a transaction outside the period",
 			args: args{
 				from: *from,
 				to:   *to,
@@ -80,8 +78,8 @@ func TestCalcTotalTurnover(t *testing.T) {
 						Transactions: []*model.OrderTransaction{
 							{
 								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
 								AmountSet: &model.MoneyBag{
 									ShopMoney: &model.MoneyV2{
@@ -91,8 +89,8 @@ func TestCalcTotalTurnover(t *testing.T) {
 							},
 							{
 								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
-								Kind:        "REFUND",
-								Status:      "SUCCESS",
+								Kind:        model.OrderTransactionKindRefund,
+								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
 								AmountSet: &model.MoneyBag{
 									ShopMoney: &model.MoneyV2{
@@ -106,8 +104,8 @@ func TestCalcTotalTurnover(t *testing.T) {
 						Transactions: []*model.OrderTransaction{
 							{
 								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
 								AmountSet: &model.MoneyBag{
 									ShopMoney: &model.MoneyV2{
@@ -117,8 +115,8 @@ func TestCalcTotalTurnover(t *testing.T) {
 							},
 							{
 								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
-								Kind:        "SALE",
-								Status:      "SUCCESS",
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
 								AmountSet: &model.MoneyBag{
 									ShopMoney: &model.MoneyV2{
@@ -146,7 +144,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 	}
 }
 
-func TestCalcTotalVATNetTurnover(t *testing.T) {
+func TestCalcTotalNetTurnover(t *testing.T) {
 	from, to, err := utils.ParsePeriod([]string{"2020-04-01", "2020-04-01"})
 	if err != nil {
 		log.Fatalf("error parsing period: %s", err)
@@ -176,9 +174,20 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
+						},
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
 							},
 						},
 					},
@@ -192,13 +201,21 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
-							},
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						TotalRefundedSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{},
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
+							},
 						},
 						TaxLines: []*model.TaxLine{
 							{
@@ -216,9 +233,20 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
+						},
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{
@@ -237,14 +265,31 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
-							},
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						TotalRefundedSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("5.01"),
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
+							},
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindRefund,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("5.01"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{
@@ -263,14 +308,31 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
-							},
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						TotalRefundedSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
+							},
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindRefund,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{
@@ -289,14 +351,31 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
-							},
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						TotalRefundedSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
+							},
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindRefund,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{
@@ -306,9 +385,20 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 						},
 					},
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.99"),
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
+						},
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.99"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{
@@ -327,9 +417,20 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.01"),
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
+						},
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.01"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{
@@ -339,9 +440,20 @@ func TestCalcTotalVATNetTurnover(t *testing.T) {
 						},
 					},
 					{
-						TotalPriceSet: &model.MoneyBag{
-							ShopMoney: &model.MoneyV2{
-								Amount: null.StringFrom("10.99"),
+						ShippingAddress: &model.MailingAddress{
+							CountryCodeV2: newCountryCode(model.CountryCodeGb),
+						},
+						Transactions: []*model.OrderTransaction{
+							{
+								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								Kind:        model.OrderTransactionKindSale,
+								Status:      model.OrderTransactionStatusSuccess,
+								Test:        false,
+								AmountSet: &model.MoneyBag{
+									ShopMoney: &model.MoneyV2{
+										Amount: null.StringFrom("10.99"),
+									},
+								},
 							},
 						},
 						TaxLines: []*model.TaxLine{

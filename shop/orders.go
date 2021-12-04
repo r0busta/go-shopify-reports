@@ -56,6 +56,7 @@ func (s *OrderServiceOp) listCreatedBetween(from, to time.Time) ([]*model.Order,
 				node {
 					id
 					name
+					createdAt
 					totalPriceSet {
 						shopMoney {
 							amount
@@ -63,6 +64,12 @@ func (s *OrderServiceOp) listCreatedBetween(from, to time.Time) ([]*model.Order,
 						}
 					}
 					totalRefundedSet {
+						shopMoney {
+							amount
+							currencyCode
+						}
+					}
+					currentTotalTaxSet {
 						shopMoney {
 							amount
 							currencyCode
@@ -135,7 +142,6 @@ func GetTransactionAmount(t *model.OrderTransaction) (*decimal.Decimal, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error: %s", err)
 		}
-		d = d.Neg()
 		return &d, nil
 	default:
 		return &decimal.Zero, nil
@@ -144,8 +150,9 @@ func GetTransactionAmount(t *model.OrderTransaction) (*decimal.Decimal, error) {
 
 func SumTransactions(transactions []*model.OrderTransaction, kind model.OrderTransactionKind, from, to time.Time) (*decimal.Decimal, error) {
 	var total decimal.Decimal
+
 	for _, t := range transactions {
-		if t.Test {
+		if t.Test || t.Kind != kind {
 			continue
 		}
 
@@ -153,7 +160,7 @@ func SumTransactions(transactions []*model.OrderTransaction, kind model.OrderTra
 		if err != nil {
 			return nil, fmt.Errorf("error parsing processed at time: %s", err)
 		}
-		if t.Kind == kind && (processedAt.After(from) && processedAt.Before(to) || processedAt.Equal(from) || processedAt.Equal(to)) {
+		if processedAt.After(from) && processedAt.Before(to) || processedAt.Equal(from) || processedAt.Equal(to) {
 			amount, err := GetTransactionAmount(t)
 			if err != nil {
 				return nil, fmt.Errorf("error getting transaction amount: %s", err)
@@ -161,74 +168,116 @@ func SumTransactions(transactions []*model.OrderTransaction, kind model.OrderTra
 			total = total.Add(*amount)
 		}
 	}
+
 	return &total, nil
+}
+
+func CalcOrderTurnover(o *model.Order, from, to time.Time) (decimal.Decimal, error) {
+	var income decimal.Decimal
+
+	revenue, err := SumTransactions(o.Transactions, model.OrderTransactionKindSale, from, to)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("error getting sales total: %s", err)
+	}
+	income = income.Add(*revenue)
+
+	refunds, err := SumTransactions(o.Transactions, model.OrderTransactionKindRefund, from, to)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("error getting refund total: %s", err)
+	}
+	income = income.Sub(*refunds)
+
+	return income, nil
 }
 
 func CalcTotalTurnover(orders []*model.Order, from, to time.Time) (*decimal.Decimal, error) {
 	var total decimal.Decimal
 
 	for _, o := range orders {
-		revenue, err := SumTransactions(o.Transactions, model.OrderTransactionKindSale, from, to)
+		income, err := CalcOrderTurnover(o, from, to)
 		if err != nil {
-			return nil, fmt.Errorf("error getting transactions total: %s", err)
+			return nil, fmt.Errorf("income calc: %s", err)
 		}
-		total = total.Add(*revenue)
-
-		refunds, err := SumTransactions(o.Transactions, model.OrderTransactionKindRefund, from, to)
-		if err != nil {
-			return nil, fmt.Errorf("error getting transactions total: %s", err)
-		}
-		total = total.Add(*refunds)
+		total = total.Add(income)
 	}
 
 	return &total, nil
 }
 
-func GetOrderNetTotal(o *model.Order) (*decimal.Decimal, error) {
-	total := decimal.Zero
+func CalcOrderNetIncome(o *model.Order, from, to time.Time) (*decimal.Decimal, error) {
+	income, err := CalcOrderTurnover(o, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("income calc: %s", err)
+	}
 
-	if o.TotalPriceSet != nil && o.TotalPriceSet.ShopMoney != nil && !o.TotalPriceSet.ShopMoney.Amount.IsZero() {
-		revenue, err := decimal.NewFromString(o.TotalPriceSet.ShopMoney.Amount.ValueOrZero())
+	if income.IsZero() {
+		return &decimal.Zero, nil
+	}
+
+	if o.ShippingAddress != nil && o.ShippingAddress.CountryCodeV2 != nil && *o.ShippingAddress.CountryCodeV2 == model.CountryCodeGb {
+		for _, t := range o.TaxLines {
+			if t.Rate == nil {
+				continue
+			}
+
+			invertRate := decimal.NewFromFloat(1 + *t.Rate)
+			tax := income.Sub(income.Div(invertRate).Round(2))
+
+			income = income.Sub(tax)
+		}
+	}
+
+	return &income, nil
+}
+
+func GetOrderSaleTaxTotal(o *model.Order) (*decimal.Decimal, error) {
+	res := decimal.Zero
+
+	if o.CurrentTotalTaxSet != nil && o.CurrentTotalTaxSet.ShopMoney != nil && !o.CurrentTotalTaxSet.ShopMoney.Amount.IsZero() {
+		tax, err := decimal.NewFromString(o.CurrentTotalTaxSet.ShopMoney.Amount.ValueOrZero())
 		if err != nil {
-			return nil, fmt.Errorf("error parsing total price set: %s", err)
+			return nil, fmt.Errorf("error parsing total tax set: %s", err)
 		}
-		total = total.Add(revenue)
+		res = res.Add(tax)
 	}
 
-	if o.TotalRefundedSet != nil && o.TotalRefundedSet.ShopMoney != nil && !o.TotalRefundedSet.ShopMoney.Amount.IsZero() {
-		refunds, err := decimal.NewFromString(o.TotalRefundedSet.ShopMoney.Amount.ValueOrZero())
-		if err != nil {
-			return nil, fmt.Errorf("error parsing total refunded set: %s", err)
-		}
-		total = total.Sub(refunds)
-	}
-
-	for _, t := range o.TaxLines {
-		if t.Rate == nil {
-			continue
-		}
-
-		rate := decimal.NewFromFloat(*t.Rate)
-
-		tax := total.Sub(total.Div(rate.Add(decimal.NewFromFloat(1)))).RoundBank(2)
-
-		total = total.Sub(tax)
-	}
-
-	return &total, nil
+	return &res, nil
 }
 
 func CalcTotalNetTurnover(orders []*model.Order, from, to time.Time) (*decimal.Decimal, error) {
 	var total decimal.Decimal
 
 	for _, o := range orders {
-		orderNetTotal, err := GetOrderNetTotal(o)
+		income, err := CalcOrderNetIncome(o, from, to)
 		if err != nil {
-			return nil, fmt.Errorf("calculating order net total: %s", err)
+			return nil, fmt.Errorf("calculating order net income: %s", err)
 		}
 
-		total = total.Add(*orderNetTotal)
+		total = total.Add(*income)
 	}
 
 	return &total, nil
+}
+
+func CalcTotalSaleTax(orders []*model.Order, from, to time.Time) (*decimal.Decimal, error) {
+	var tax decimal.Decimal
+
+	for _, o := range orders {
+		createdAt, err := time.Parse(ISO8601Layout, o.CreatedAt.String)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing created at time: %s", err)
+		}
+		if (createdAt.Before(from) || createdAt.After(to)) && !createdAt.Equal(from) && !createdAt.Equal(to) {
+			continue
+		}
+
+		orderTax, err := GetOrderSaleTaxTotal(o)
+		if err != nil {
+			return nil, fmt.Errorf("calculating order tax total: %s", err)
+		}
+
+		tax = tax.Add(*orderTax)
+	}
+
+	return &tax, nil
 }

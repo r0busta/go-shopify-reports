@@ -26,5 +26,11 @@ func Report(period []string, useCached bool) {
 		log.Fatalf("Error calculating total turnover: %s", err)
 	}
 
-	fmt.Println("Total turnover, including VAT and EC sales (box 6):", totalTurnover.String())
+	totalSaleTax, err := shop.CalcTotalSaleTax(orders, *from, *to)
+	if err != nil {
+		log.Fatalf("Error calculating total tax: %s", err)
+	}
+
+	fmt.Println("Total turnover (excl. VAT):", totalTurnover.String())
+	fmt.Println("Total tax (VAT):", totalSaleTax.String())
 }
