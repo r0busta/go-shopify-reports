@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	diskstore "github.com/r0busta/go-object-store/disk"
 	"github.com/r0busta/go-shopify-graphql-model/graph/model"
-	"github.com/r0busta/go-shopify-reports/cache"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,6 +17,7 @@ type OrderService interface {
 
 type OrderServiceOp struct {
 	client *Client
+	cache  *diskstore.Store
 }
 
 var _ OrderService = &OrderServiceOp{}
@@ -24,11 +25,12 @@ var _ OrderService = &OrderServiceOp{}
 func (s *OrderServiceOp) ListCreatedBetween(from, to time.Time, useCached bool) ([]*model.Order, error) {
 	isCacheValid := false
 	if useCached {
-		isCacheValid = cache.CheckCache()
+		isCacheValid = s.cache.FileExists()
 	}
 
 	if useCached && isCacheValid {
-		orders, err := cache.ReadCache()
+		orders := []*model.Order{}
+		err := s.cache.Read(&orders)
 		if err != nil {
 			return []*model.Order{}, fmt.Errorf("error reading orders from cache: %s", err)
 		}
@@ -39,7 +41,7 @@ func (s *OrderServiceOp) ListCreatedBetween(from, to time.Time, useCached bool) 
 	if err != nil {
 		return []*model.Order{}, fmt.Errorf("error listing orders: %s", err)
 	}
-	err = cache.WriteCache(orders)
+	err = s.cache.Write(orders)
 	if err != nil {
 		return []*model.Order{}, fmt.Errorf("error caching orders: %s", err)
 	}
