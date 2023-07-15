@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/r0busta/go-shopify-graphql-model/graph/model"
+	"github.com/r0busta/go-shopify-graphql-model/v3/graph/model"
 	"github.com/r0busta/go-shopify-reports/shop"
 	"github.com/r0busta/go-shopify-reports/utils"
 
@@ -196,7 +196,7 @@ func ByVendor(period []string, useCached bool, exportPath string) {
 	}
 }
 
-func getTags(lineItems []*model.LineItemEdge) []string {
+func getTags(lineItems []model.LineItemEdge) []string {
 	res := []string{}
 	for _, li := range lineItems {
 		res = append(res, getLineItemTags(li.Node)...)
@@ -207,12 +207,12 @@ func getTags(lineItems []*model.LineItemEdge) []string {
 func getLineItemTags(li *model.LineItem) []string {
 	res := []string{}
 	for _, t := range li.Product.Tags {
-		res = append(res, strings.ToLower(t.String))
+		res = append(res, strings.ToLower(t))
 	}
 	return res
 }
 
-func getLineItemFulfilledQuantityByTag(lineItems []*model.LineItemEdge, tag string) int {
+func getLineItemFulfilledQuantityByTag(lineItems []model.LineItemEdge, tag string) int {
 	res := 0
 	for _, li := range lineItems {
 		if funk.ContainsString(getLineItemTags(li.Node), tag) {
@@ -222,7 +222,7 @@ func getLineItemFulfilledQuantityByTag(lineItems []*model.LineItemEdge, tag stri
 	return res
 }
 
-func getVendors(lineItems []*model.LineItemEdge) []string {
+func getVendors(lineItems []model.LineItemEdge) []string {
 	res := []string{}
 	for _, li := range lineItems {
 		res = append(res, getVendor(li.Node))
@@ -231,11 +231,15 @@ func getVendors(lineItems []*model.LineItemEdge) []string {
 }
 
 func getVendor(li *model.LineItem) string {
-	downcaseVendor := strings.ToLower(strings.TrimSpace(li.Vendor.String))
+	if li.Vendor == nil {
+		return ""
+	}
+
+	downcaseVendor := strings.ToLower(strings.TrimSpace(*li.Vendor))
 	return downcaseVendor
 }
 
-func getLineItemFulfilledQuantityByVendor(lineItems []*model.LineItemEdge, vendor string) int {
+func getLineItemFulfilledQuantityByVendor(lineItems []model.LineItemEdge, vendor string) int {
 	res := 0
 	for _, li := range lineItems {
 		if getVendor(li.Node) == vendor {

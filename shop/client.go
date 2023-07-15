@@ -2,7 +2,7 @@ package shop
 
 import (
 	diskstore "github.com/r0busta/go-object-store/disk"
-	shopifygraphql "github.com/r0busta/go-shopify-graphql/v3"
+	shopifygraphql "github.com/r0busta/go-shopify-graphql/v8"
 )
 
 const (

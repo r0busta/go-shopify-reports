@@ -1,12 +1,13 @@
 package shop
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	diskstore "github.com/r0busta/go-object-store/disk"
-	"github.com/r0busta/go-shopify-graphql-model/graph/model"
+	"github.com/r0busta/go-shopify-graphql-model/v3/graph/model"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
@@ -120,14 +121,14 @@ func (s *OrderServiceOp) listCreatedBetween(from, to time.Time) ([]*model.Order,
 		OR (processed_at:>='%[1]s' processed_at:<='%[2]s')`, from.Format(ISO8601Layout), to.Format(ISO8601Layout)))
 	var orders []*model.Order
 
-	err := s.client.shopifyClient.BulkOperation.BulkQuery(query, &orders)
+	err := s.client.shopifyClient.BulkOperation.BulkQuery(context.Background(), query, &orders)
 	if err != nil {
 		return nil, err
 	}
 	return orders, nil
 }
 
-func GetTransactionAmount(t *model.OrderTransaction) (*decimal.Decimal, error) {
+func GetTransactionAmount(t model.OrderTransaction) (*decimal.Decimal, error) {
 	if t.Status != model.OrderTransactionStatusSuccess {
 		return &decimal.Zero, nil
 	}
@@ -150,7 +151,7 @@ func GetTransactionAmount(t *model.OrderTransaction) (*decimal.Decimal, error) {
 	}
 }
 
-func SumTransactions(transactions []*model.OrderTransaction, kind model.OrderTransactionKind, from, to time.Time) (*decimal.Decimal, error) {
+func SumTransactions(transactions []model.OrderTransaction, kind model.OrderTransactionKind, from, to time.Time) (*decimal.Decimal, error) {
 	var total decimal.Decimal
 
 	for _, t := range transactions {
@@ -158,7 +159,7 @@ func SumTransactions(transactions []*model.OrderTransaction, kind model.OrderTra
 			continue
 		}
 
-		processedAt, err := time.Parse(ISO8601Layout, t.ProcessedAt.String)
+		processedAt, err := time.Parse(ISO8601Layout, *t.ProcessedAt)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing processed at time: %s", err)
 		}
@@ -265,7 +266,7 @@ func CalcTotalSaleTax(orders []*model.Order, from, to time.Time) (*decimal.Decim
 	var tax decimal.Decimal
 
 	for _, o := range orders {
-		createdAt, err := time.Parse(ISO8601Layout, o.CreatedAt.String)
+		createdAt, err := time.Parse(ISO8601Layout, o.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing created at time: %s", err)
 		}

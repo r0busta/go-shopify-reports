@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/r0busta/go-shopify-graphql-model/graph/model"
+	"github.com/r0busta/go-shopify-graphql-model/v3/graph/model"
 	"github.com/r0busta/go-shopify-reports/utils"
 	"github.com/shopspring/decimal"
 	"gopkg.in/guregu/null.v4"
@@ -50,9 +50,9 @@ func TestCalcTotalTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -75,9 +75,9 @@ func TestCalcTotalTurnover(t *testing.T) {
 				to:   *to,
 				orders: []*model.Order{
 					{
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -88,7 +88,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindRefund,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -101,9 +101,9 @@ func TestCalcTotalTurnover(t *testing.T) {
 						},
 					},
 					{
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -114,7 +114,7 @@ func TestCalcTotalTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 2, 11, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -177,9 +177,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -204,9 +204,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -217,7 +217,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: nil,
 							},
@@ -236,9 +236,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -249,7 +249,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
@@ -268,9 +268,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -281,7 +281,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindRefund,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -292,7 +292,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
@@ -311,9 +311,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -324,7 +324,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindRefund,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -335,7 +335,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
@@ -354,9 +354,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -367,7 +367,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindRefund,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -378,7 +378,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
@@ -388,9 +388,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -401,7 +401,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
@@ -420,9 +420,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -433,7 +433,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
@@ -443,9 +443,9 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 						ShippingAddress: &model.MailingAddress{
 							CountryCodeV2: newCountryCode(model.CountryCodeGb),
 						},
-						Transactions: []*model.OrderTransaction{
+						Transactions: []model.OrderTransaction{
 							{
-								ProcessedAt: model.NewNullString(null.StringFrom(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout))),
+								ProcessedAt: model.NewString(time.Date(2020, 4, 1, 10, 30, 0, 0, time.UTC).Format(ISO8601Layout)),
 								Kind:        model.OrderTransactionKindSale,
 								Status:      model.OrderTransactionStatusSuccess,
 								Test:        false,
@@ -456,7 +456,7 @@ func TestCalcTotalNetTurnover(t *testing.T) {
 								},
 							},
 						},
-						TaxLines: []*model.TaxLine{
+						TaxLines: []model.TaxLine{
 							{
 								Rate: newFloat64(0.2),
 							},
